@@ -1,5 +1,7 @@
-# Ignore the envJarvis directory
-/envjarvis/
+# Ignore virtual environments
+/envJarvis/
+/.venv/
+/.venv311/
 
 # Ignore contact.csv
 contacts.csv
@@ -9,6 +11,10 @@ jarvis.db
 
 # Ignore Python bytecode files in backend
 /backend/__pycache__/ 
+
+# Ignore Python bytecode and cache folders project-wide
+__pycache__/
+*.py[cod]
 
 # Ignore backend cookie.json
 /backend/cookie.json

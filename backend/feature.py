@@ -22,7 +22,10 @@ import pvporcupine
 import pyaudio
 import pyautogui
 import pywhatkit as kit
-import pygame
+try:
+    import pygame
+except Exception:
+    pygame = None
 from backend.command import speak
 from backend.config import ASSISTANT_NAME
 import sqlite3
@@ -31,14 +34,24 @@ from backend.helper import extract_yt_term, remove_words
 conn = sqlite3.connect("jarvis.db")
 cursor = conn.cursor()
 # Initialize pygame mixer
-pygame.mixer.init()
+if pygame is not None:
+    try:
+        pygame.mixer.init()
+    except Exception:
+        pygame = None
+
+
+def _project_path(*parts):
+    base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    return os.path.join(base_dir, *parts)
 
 # Define the function to play sound
 @eel.expose
 def play_assistant_sound():
-    sound_file = r"C:\Users\patha\Videos\Jarvis\frontend\assets\audio\start_sound.mp3"
-    pygame.mixer.music.load(sound_file)
-    pygame.mixer.music.play()
+    sound_file = _project_path("frontend", "assets", "audio", "start_sound.mp3")
+    if pygame is not None and os.path.exists(sound_file):
+        pygame.mixer.music.load(sound_file)
+        pygame.mixer.music.play()
     
     
 def openCommand(query):
@@ -57,7 +70,10 @@ def openCommand(query):
 
             if len(results) != 0:
                 speak("Opening "+query)
-                os.startfile(results[0][0])
+                if os.name == "nt":
+                    os.startfile(results[0][0])
+                else:
+                    subprocess.run(["open", results[0][0]], check=False)
 
             elif len(results) == 0: 
                 cursor.execute(
@@ -71,7 +87,10 @@ def openCommand(query):
                 else:
                     speak("Opening "+query)
                     try:
-                        os.system('start '+query)
+                        if os.name == "nt":
+                            os.system('start '+query)
+                        else:
+                            subprocess.run(["open", query], check=False)
                     except:
                         speak("not found")
         except:
@@ -109,10 +128,11 @@ def hotword():
 
                 # pressing shorcut key win+j
                 import pyautogui as autogui
-                autogui.keyDown("win")
+                modifier = "win" if os.name == "nt" else "command"
+                autogui.keyDown(modifier)
                 autogui.press("j")
                 time.sleep(2)
-                autogui.keyUp("win")
+                autogui.keyUp(modifier)
                 
     except:
         if porcupine is not None:
@@ -169,12 +189,16 @@ def whatsApp(Phone, message, flag, name):
     whatsapp_url = f"whatsapp://send?phone={Phone}&text={encoded_message}"
 
     # Construct the full command
-    full_command = f'start "" "{whatsapp_url}"'
-
-    # Open WhatsApp with the constructed URL using cmd.exe
-    subprocess.run(full_command, shell=True)
+    if os.name == "nt":
+        full_command = f'start "" "{whatsapp_url}"'
+        subprocess.run(full_command, shell=True)
+    else:
+        webbrowser.open(whatsapp_url)
     time.sleep(5)
-    subprocess.run(full_command, shell=True)
+    if os.name == "nt":
+        subprocess.run(full_command, shell=True)
+    else:
+        webbrowser.open(whatsapp_url)
     
     pyautogui.hotkey('ctrl', 'f')
 
@@ -187,7 +211,7 @@ def whatsApp(Phone, message, flag, name):
 
 def chatBot(query):
     user_input = query.lower()
-    chatbot = hugchat.ChatBot(cookie_path="backend\cookie.json")
+    chatbot = hugchat.ChatBot(cookie_path=_project_path("backend", "cookie.json"))
     id = chatbot.new_conversation()
     chatbot.change_conversation(id)
     response =  chatbot.chat(user_input)

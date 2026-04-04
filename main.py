@@ -1,5 +1,6 @@
 import os
 import eel
+import webbrowser
 from backend.auth import recoganize
 from backend.auth.recoganize import AuthenticateFace
 from backend.feature import *
@@ -17,7 +18,10 @@ def start():
         eel.hideLoader()
         speak("Welcome to Jarvis")
         speak("Ready for Face Authentication")
-        flag = recoganize.AuthenticateFace()
+        try:
+            flag = recoganize.AuthenticateFace()
+        except Exception:
+            flag = 0
         if flag ==1:
             speak("Face recognized successfully")
             eel.hideFaceAuth()
@@ -28,7 +32,10 @@ def start():
         else:
             speak("Face not recognized. Please try again")
         
-    os.system('start msedge.exe --app="http://127.0.0.1:8000/index.html"')
+    if os.name == "nt":
+        os.system('start msedge.exe --app="http://127.0.0.1:8000/index.html"')
+    else:
+        webbrowser.open("http://127.0.0.1:8000/index.html")
     
     
     

@@ -3,10 +3,14 @@ import numpy as np
 from PIL import Image #pillow package
 import os
 
-path = 'backend\\auth\\samples' # Path for samples already taken
+base_dir = os.path.dirname(os.path.abspath(__file__))
+path = os.path.join(base_dir, 'samples') # Path for samples already taken
+if os.path.exists(path) and not os.path.isdir(path):
+    os.replace(path, path + ".bak")
+os.makedirs(path, exist_ok=True)
 
 recognizer = cv2.face.LBPHFaceRecognizer_create() # Local Binary Patterns Histograms
-detector = cv2.CascadeClassifier("backend\\auth\\haarcascade_frontalface_default.xml")
+detector = cv2.CascadeClassifier(os.path.join(base_dir, "haarcascade_frontalface_default.xml"))
 #Haar Cascade classifier is an effective object detection approach
 
 
@@ -30,12 +34,22 @@ def Images_And_Labels(path): # function to fetch the images and labels
 
     return faceSamples,ids
 
-print ("Training faces. It will take a few seconds. Wait ...")
+def train_model():
+    print ("Training faces. It will take a few seconds. Wait ...")
 
-faces,ids = Images_And_Labels(path)
-recognizer.train(faces, np.array(ids))
+    faces,ids = Images_And_Labels(path)
+    if not faces:
+        raise RuntimeError("No face samples found. Capture samples first.")
 
-recognizer.write('backend\\auth\\trainer\\trainer.yml')  # Save the trained model as trainer.yml
+    recognizer.train(faces, np.array(ids))
 
-print("Model trained, Now we can recognize your face.")
+    trainer_dir = os.path.join(base_dir, "trainer")
+    os.makedirs(trainer_dir, exist_ok=True)
+    recognizer.write(os.path.join(trainer_dir, 'trainer.yml'))  # Save the trained model as trainer.yml
+
+    print("Model trained, Now we can recognize your face.")
+
+
+if __name__ == "__main__":
+    train_model()
  

@@ -2,13 +2,17 @@ import time
 import pyttsx3
 import speech_recognition as sr
 import eel
+import os
 
 def speak(text):
     text = str(text)
-    engine = pyttsx3.init('sapi5')
+    driver = 'sapi5' if os.name == 'nt' else None
+    engine = pyttsx3.init(driver)
     voices = engine.getProperty('voices')
     # print(voices)
-    engine.setProperty('voice', voices[2].id)
+    if voices:
+        voice_index = 2 if len(voices) > 2 else 0
+        engine.setProperty('voice', voices[voice_index].id)
     eel.DisplayMessage(text)
     engine.say(text)
     engine.runAndWait()
