@@ -64,7 +64,7 @@ $(document).ready(function () {
     if (message != "") {
       $("#Oval").attr("hidden", true);
       $("#SiriWave").attr("hidden", false);
-      eel.takeAllCommands(message);
+      eel.takeAllCommands(message)();
       $("#chatbox").val("");
       $("#MicBtn").attr("hidden", false);
       $("#SendBtn").attr("hidden", true);

@@ -41,3 +41,7 @@ def start():
     
     eel.start("index.html", mode=None, host="localhost", block=True) 
 
+
+if __name__ == "__main__":
+    start()
+

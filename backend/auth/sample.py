@@ -21,8 +21,6 @@ def _open_camera():
 
 base_dir = os.path.dirname(os.path.abspath(__file__))
 samples_dir = os.path.join(base_dir, "samples")
-if os.path.exists(samples_dir) and not os.path.isdir(samples_dir):
-    os.replace(samples_dir, samples_dir + ".bak")
 os.makedirs(samples_dir, exist_ok=True)
 
 detector = cv2.CascadeClassifier(os.path.join(base_dir, "haarcascade_frontalface_default.xml"))

@@ -16,11 +16,19 @@ if __name__ == "__main__":
     process2 = multiprocessing.Process(target=listenHotword)
     process1.start()
     process2.start()
-    process1.join()
-    
-    if process2.is_alive():
-        process2.terminate()
-        print("Process 2 terminated.")
-        process2.join()
-        
-    print("System is terminated.")
+
+    try:
+        process1.join()
+    except KeyboardInterrupt:
+        print("Interrupted by user. Shutting down...")
+    finally:
+        if process1.is_alive():
+            process1.terminate()
+            process1.join()
+
+        if process2.is_alive():
+            process2.terminate()
+            print("Process 2 terminated.")
+            process2.join()
+
+        print("System is terminated.")

@@ -33,6 +33,16 @@ import sqlite3
 from backend.helper import extract_yt_term, remove_words
 conn = sqlite3.connect("jarvis.db")
 cursor = conn.cursor()
+
+
+def _ensure_command_tables():
+    cursor.execute(
+        "CREATE TABLE IF NOT EXISTS sys_command(id integer primary key, name VARCHAR(100), path VARCHAR(1000))"
+    )
+    cursor.execute(
+        "CREATE TABLE IF NOT EXISTS web_command(id integer primary key, name VARCHAR(100), url VARCHAR(1000))"
+    )
+    conn.commit()
 # Initialize pygame mixer
 if pygame is not None:
     try:
@@ -55,13 +65,36 @@ def play_assistant_sound():
     
     
 def openCommand(query):
-    query = query.replace(ASSISTANT_NAME,"")
-    query = query.replace("open","")
-    query.lower()
+    _ensure_command_tables()
+
+    # Normalize command text and remove assistant name/open keyword safely.
+    query = str(query).lower().strip()
+    assistant = ASSISTANT_NAME.lower().strip()
+    if assistant:
+        query = re.sub(rf"\b{re.escape(assistant)}\b", "", query).strip()
+    query = re.sub(r"\bopen\b", "", query).strip()
     
     app_name = query.strip()
 
     if app_name != "":
+
+        direct_web_map = {
+            "youtube": "https://www.youtube.com",
+            "google": "https://www.google.com",
+            "gmail": "https://mail.google.com",
+            "github": "https://github.com",
+            "spotify": "https://open.spotify.com",
+            "music": "https://open.spotify.com",
+            "instagram": "https://www.instagram.com",
+            "twitter": "https://www.twitter.com",
+            "linkedin": "https://www.linkedin.com",
+            "facebook": "https://www.facebook.com",
+        }
+
+        if app_name in direct_web_map:
+            speak("Opening " + app_name)
+            webbrowser.open(direct_web_map[app_name])
+            return
 
         try:
             cursor.execute( 
@@ -93,8 +126,9 @@ def openCommand(query):
                             subprocess.run(["open", query], check=False)
                     except:
                         speak("not found")
-        except:
-            speak("some thing went wrong")
+        except Exception as e:
+            print(f"openCommand error: {e}")
+            speak("I could not open that right now.")
 
 
 def PlayYoutube(query):
@@ -209,12 +243,49 @@ def whatsApp(Phone, message, flag, name):
     speak(jarvis_message)
 
 
+def newsBriefing():
+    """Fetch and speak latest news headlines without authentication."""
+    try:
+        import requests
+        # Using NewsAPI free endpoint (alternatively: BBC, Reuters, CNN)
+        response = requests.get(
+            "https://newsapi.org/v2/top-headlines",
+            params={"country": "us", "pageSize": 5},
+            timeout=5
+        )
+        if response.status_code == 200:
+            articles = response.json().get('articles', [])
+            if articles:
+                speak("Here are today's top news headlines.")
+                for idx, article in enumerate(articles[:3], 1):
+                    headline = article.get('title', 'Headline unavailable')
+                    speak(f"Number {idx}: {headline}")
+                return "News briefing completed."
+        # Fallback to Wikipedia trending or generic response
+        speak("I could not fetch the news right now. Please check back later or try asking me something else.")
+        return "News briefing unavailable."
+    except Exception as e:
+        print(f"newsBriefing error: {e}")
+        speak("Unable to fetch news at the moment.")
+        return "News briefing failed."
+
+
 def chatBot(query):
     user_input = query.lower()
-    chatbot = hugchat.ChatBot(cookie_path=_project_path("backend", "cookie.json"))
-    id = chatbot.new_conversation()
-    chatbot.change_conversation(id)
-    response =  chatbot.chat(user_input)
-    print(response)
-    speak(response)
-    return response
+    try:
+        cookie_path = _project_path("backend", "cookie.json")
+        if not os.path.exists(cookie_path):
+            raise FileNotFoundError(f"Missing cookie file: {cookie_path}")
+
+        chatbot = hugchat.ChatBot(cookie_path=cookie_path)
+        id = chatbot.new_conversation()
+        chatbot.change_conversation(id)
+        response = chatbot.chat(user_input)
+        print(response)
+        speak(response)
+        return response
+    except Exception as e:
+        print(f"chatBot error: {e}")
+        fallback = "I am unable to reach the online chat service right now. Please try an open or youtube command."
+        speak(fallback)
+        return fallback
